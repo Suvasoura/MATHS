@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Aesthetic Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .calc {
+      background: rgba(255,255,255,0.13);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 2.5rem;
+      padding: 2rem 1.75rem 1.75rem;
+      width: 340px;
+      box-shadow:
+        0 32px 80px rgba(0,0,0,0.28),
+        0 8px 32px rgba(0,0,0,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.4);
+    }
+
+    .display {
+      background: rgba(0,0,0,0.22);
+      border-radius: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+      min-height: 110px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: flex-end;
+      gap: 4px;
+    }
+
+    .display-expr {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.5);
+      font-weight: 400;
+      min-height: 1.1rem;
+      text-align: right;
+      letter-spacing: 0.02em;
+      word-break: break-all;
+    }
+
+    .display-value {
+      font-size: 2.75rem;
+      color: #fff;
+      font-weight: 300;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      text-align: right;
+      word-break: break-all;
+      transition: font-size 0.1s;
+    }
+
+    .display-value.shrink { font-size: 1.75rem; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.6rem;
+    }
+
+    button {
+      font-family: 'Inter', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 500;
+      border: none;
+      border-radius: 999px;
+      height: 64px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.08s, filter 0.08s;
+      letter-spacing: 0.01em;
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+
+    button:active { transform: scale(0.91); }
+
+    .num {
+      background: rgba(255,255,255,0.18);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+    .num:hover { background: rgba(255,255,255,0.28); }
+
+    .op {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.85);
+      font-size: 1.3rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+    .op:hover { background: rgba(255,255,255,0.16); }
+
+    .special {
+      background: rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.8);
+      font-size: 1rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.15);
+    }
+    .special:hover { background: rgba(255,255,255,0.18); color: #fff; }
+
+    .clear {
+      background: rgba(255,100,100,0.35);
+      color: #fff;
+      font-size: 0.95rem;
+      border: 1px solid rgba(255,150,150,0.25);
+      box-shadow: 0 4px 16px rgba(255,100,100,0.2), inset 0 1px 0 rgba(255,255,255,0.25);
+    }
+    .clear:hover { background: rgba(255,100,100,0.5); }
+
+    .eq {
+      background: linear-gradient(135deg, #a78bfa, #7c3aed);
+      color: #fff;
+      font-size: 1.5rem;
+      border: 1px solid rgba(167,139,250,0.4);
+      box-shadow: 0 8px 24px rgba(124,58,237,0.45), inset 0 1px 0 rgba(255,255,255,0.3);
+    }
+    .eq:hover { filter: brightness(1.1); }
+
+    .span2 { grid-column: span 2; }
+
+    @keyframes ripple {
+      from { transform: scale(0); opacity: 0.4; }
+      to   { transform: scale(4); opacity: 0; }
+    }
+    .ripple {
+      position: absolute;
+      width: 40px; height: 40px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 50%;
+      animation: ripple 0.4s ease-out forwards;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="calc">
+  <div class="display">
+    <div class="display-expr" id="expr">&nbsp;</div>
+    <div class="display-value" id="val">0</div>
+  </div>
+  <div class="grid">
+    <button class="clear"   onclick="press('AC')">AC</button>
+    <button class="special" onclick="press('+/-')">+/-</button>
+    <button class="special" onclick="press('%')">%</button>
+    <button class="op"      onclick="press('/')">÷</button>
+
+    <button class="num" onclick="press('7')">7</button>
+    <button class="num" onclick="press('8')">8</button>
+    <button class="num" onclick="press('9')">9</button>
+    <button class="op"  onclick="press('*')">×</button>
+
+    <button class="num" onclick="press('4')">4</button>
+    <button class="num" onclick="press('5')">5</button>
+    <button class="num" onclick="press('6')">6</button>
+    <button class="op"  onclick="press('-')">−</button>
+
+    <button class="num" onclick="press('1')">1</button>
+    <button class="num" onclick="press('2')">2</button>
+    <button class="num" onclick="press('3')">3</button>
+    <button class="op"  onclick="press('+')">+</button>
+
+    <button class="num span2" onclick="press('0')">0</button>
+    <button class="num"       onclick="press('.')">.</button>
+    <button class="eq"        onclick="press('=')">=</button>
+  </div>
+</div>
+
+<script>
+  let current  = '0';
+  let prev     = null;
+  let op       = null;
+  let justEval = false;
+
+  const valEl  = document.getElementById('val');
+  const exprEl = document.getElementById('expr');
+
+  function fmt(s) {
+    if (s === 'Error') return 'Error';
+    const n = parseFloat(s);
+    if (isNaN(n)) return s;
+    if (Math.abs(n) >= 1e12 || (Math.abs(n) < 1e-6 && n !== 0))
+      return n.toExponential(4);
+    const [int, dec] = s.split('.');
+    const intFmt = int.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return dec !== undefined ? intFmt + '.' + dec : intFmt;
+  }
+
+  function render() {
+    const d = fmt(current);
+    valEl.textContent = d;
+    valEl.classList.toggle('shrink', d.length > 9);
+  }
+
+  function compute(a, b, o) {
+    const x = parseFloat(a), y = parseFloat(b);
+    if (isNaN(x) || isNaN(y)) return 'Error';
+    let r;
+    if      (o === '+') r = x + y;
+    else if (o === '-') r = x - y;
+    else if (o === '*') r = x * y;
+    else if (o === '/') { if (y === 0) return 'Error'; r = x / y; }
+    else return b;
+    return parseFloat(r.toPrecision(12)).toString();
+  }
+
+  function opLabel(o) {
+    return o === '/' ? '÷' : o === '*' ? '×' : o === '-' ? '−' : o;
+  }
+
+  function press(v) {
+    if (v === 'AC') {
+      current = '0'; prev = null; op = null; justEval = false;
+      exprEl.innerHTML = '&nbsp;';
+      render(); return;
+    }
+
+    if (v === '+/-') {
+      if (current !== '0' && current !== 'Error')
+        current = current.startsWith('-') ? current.slice(1) : '-' + current;
+      render(); return;
+    }
+
+    if (v === '%') {
+      if (current !== 'Error') {
+        current = (parseFloat(current) / 100).toString();
+        justEval = true;
+      }
+      render(); return;
+    }
+
+    if (['+', '-', '*', '/'].includes(v)) {
+      if (current === 'Error') return;
+      if (op && prev && !justEval)
+        current = compute(prev, current, op);
+      prev = current;
+      op = v;
+      justEval = true;
+      exprEl.textContent = fmt(prev) + ' ' + opLabel(v);
+      render(); return;
+    }
+
+    if (v === '=') {
+      if (op && prev) {
+        const exprText = fmt(prev) + ' ' + opLabel(op) + ' ' + fmt(current) + ' =';
+        current = compute(prev, current, op);
+        exprEl.textContent = exprText;
+        prev = null; op = null; justEval = true;
+        render();
+      }
+      return;
+    }
+
+    // digits / dot
+    if (v === '.' && current.includes('.')) return;
+    if (justEval) {
+      current = v === '.' ? '0.' : v === '0' ? '0' : v;
+      justEval = false;
+    } else {
+      if (current === '0' && v !== '.') current = v;
+      else if (current.length < 12) current += v;
+    }
+    render();
+  }
+
+  // Ripple effect
+  document.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', e => {
+      const r = document.createElement('span');
+      r.className = 'ripple';
+      const rect = btn.getBoundingClientRect();
+      r.style.left = (e.clientX - rect.left - 20) + 'px';
+      r.style.top  = (e.clientY - rect.top  - 20) + 'px';
+      btn.appendChild(r);
+      setTimeout(() => r.remove(), 400);
+    });
+  });
+
+  // Keyboard support
+  document.addEventListener('keydown', e => {
+    if (e.key >= '0' && e.key <= '9') press(e.key);
+    else if (e.key === '.')                          press('.');
+    else if (['+','-','*','/'].includes(e.key))      press(e.key);
+    else if (e.key === 'Enter' || e.key === '=')     press('=');
+    else if (e.key === 'Escape')                     press('AC');
+    else if (e.key === 'Backspace') {
+      if (current.length <= 1 || current === 'Error') current = '0';
+      else current = current.slice(0, -1);
+      render();
+    }
+  });
+</script>
+</body>
+</html>
